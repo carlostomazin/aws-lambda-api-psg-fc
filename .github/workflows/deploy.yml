@@ -46,6 +46,18 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Create CI tfvars for environment
+        working-directory: infra
+        run: |
+          cat > ci.auto.tfvars.json <<EOF
+          {
+            "environment": {
+              "SUPABASE_URL": "${{ secrets.SUPABASE_URL }}",
+              "SUPABASE_KEY": "${{ secrets.SUPABASE_KEY }}"
+            }
+          }
+          EOF
+
       - name: Terraform Init (S3 backend)
         working-directory: infra
         run: terraform init
