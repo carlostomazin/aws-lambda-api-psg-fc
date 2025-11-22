@@ -228,7 +228,7 @@ def generate_teams(parsed_players, zagueiros_fixos, habilidosos, teams_count=2):
 app = FastAPI(title="Football Games API")
 
 
-@app.get("/health")
+@app.get("/")
 def health():
     return {"message": "ok"}
 
