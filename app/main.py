@@ -17,6 +17,7 @@ from schemas import (
     PlayerTeamOut,
 )
 from supabase import Client, create_client
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -227,6 +228,13 @@ def generate_teams(parsed_players, zagueiros_fixos, habilidosos, teams_count=2):
 
 app = FastAPI(title="Football Games API")
 
+app.add_middleware(
+    CORSMiddleware,
+    # allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def health():
