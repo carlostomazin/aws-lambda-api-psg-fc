@@ -263,7 +263,7 @@ def list_games(
     if to_date:
         query = query.lte("game_date", to_date.isoformat())
 
-    resp = query.order("game_date").execute()
+    resp = query.order("game_date", desc=True).execute()
 
     return resp.data or []
 
