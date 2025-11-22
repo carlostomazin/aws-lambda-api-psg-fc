@@ -565,6 +565,7 @@ def generate_teams_for_game(
                 name=p["name_raw"],
                 is_goalkeeper=p["is_goalkeeper"],
                 is_visitor=p["is_visitor"],
+                paid=p["paid"],
                 team=p.get("team"),
             )
             for p in players
