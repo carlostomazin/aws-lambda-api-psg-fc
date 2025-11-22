@@ -42,7 +42,7 @@ resource "aws_lambda_function" "this" {
   }
 
   layers = [
-    "arn:aws:lambda:${data.aws_region.current.region}:753240598075:layer:LambdaAdapterLayerArm64:25"
+    "arn:aws:lambda:${data.aws_region.current.name}:753240598075:layer:LambdaAdapterLayerArm64:25"
   ]
 }
 
