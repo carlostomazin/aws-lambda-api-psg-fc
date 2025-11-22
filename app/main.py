@@ -228,6 +228,11 @@ def generate_teams(parsed_players, zagueiros_fixos, habilidosos, teams_count=2):
 app = FastAPI(title="Football Games API")
 
 
+@app.get("/health")
+def health():
+    return {"message": "ok"}
+
+
 # 1) Rota para criar (ou garantir) um game
 @app.post("/games", response_model=GameOut, tags=["games"])
 def create_game(payload: GameCreate):
@@ -560,9 +565,3 @@ def generate_teams_for_game(
         game_id=game_id,
         teams=response_teams,
     )
-
-
-# -------------------------------------------------------------------
-# AWS Lambda Handler (for Lambda Web Adapter)
-# -------------------------------------------------------------------
-handler = app

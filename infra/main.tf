@@ -25,7 +25,7 @@ resource "aws_lambda_function" "this" {
   function_name    = "aws-lambda-api-psg-fc"
   role             = aws_iam_role.lambda_exec.arn
   runtime          = "python3.13"
-  handler          = "main.handler"
+  handler          = "run.sh"
   filename         = "../dist/function.zip"
   source_code_hash = filebase64sha256("../dist/function.zip")
 
@@ -54,6 +54,6 @@ resource "aws_lambda_function_url" "example" {
 
 # Log Group
 resource "aws_cloudwatch_log_group" "lambda" {
-  name              = "/aws/lambda/aws-lambda-api-psg-fc"
+  name              = "/aws/lambda/${aws_lambda_function.this.function_name}"
   retention_in_days = 14
 }
