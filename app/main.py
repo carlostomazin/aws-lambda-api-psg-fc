@@ -334,6 +334,7 @@ def list_game_players(
                 name=name,
                 is_goalkeeper=gp.get("is_goalkeeper", False),
                 is_visitor=gp.get("is_visitor", False),
+                paid=gp.get("paid", False),
                 team=gp.get("team"),
             )
         )
