@@ -1,0 +1,86 @@
+name: ci-cd
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "app/**"
+      - "infra/**"
+      - ".github/workflows/**"
+      - "destroy.yml"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install deps and build Lambda package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/requirements.txt
+          rm -rf build dist
+          mkdir -p build dist
+          cp -r app/* build/
+          pip install -r app/requirements.txt --platform manylinux2014_aarch64 -t build/ --only-binary=:all:
+          find build -name "*.pyc" -delete || true
+          find build -name "__pycache__" -type d -exec rm -rf {} + || true
+          cd build
+          zip -r ../dist/function.zip .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init (S3 backend)
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
+
+
+      - name: Read destroy config
+        id: destroy_cfg
+        run: |
+          if [ -f "destroy.yml" ]; then
+            VALUE=$(grep -i '^destroy:' destroy.yml | awk '{print tolower($2)}')
+          else
+            VALUE="false"
+          fi
+          echo "destroy=$VALUE" >> $GITHUB_OUTPUT
+          echo "Destroy flag: $VALUE"
+
+      - name: Terraform Plan
+        working-directory: infra
+        run: |
+          if [ "${{ steps.destroy_cfg.outputs.destroy }}" == "true" ]; then
+            terraform plan -destroy;
+          else
+            terraform plan;
+          fi
+
+      - name: Terraform Apply
+        if: steps.destroy_cfg.outputs.destroy != 'true'
+        working-directory: infra
+        run: terraform apply -auto-approve
+
+      - name: Terraform Destroy
+        if: steps.destroy_cfg.outputs.destroy == 'true'
+        working-directory: infra
+        run: terraform destroy -auto-approve

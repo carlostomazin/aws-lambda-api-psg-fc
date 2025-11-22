@@ -1,0 +1,5 @@
+emoji
+supabase
+python-dotenv
+fastapi
+uvicorn[standard]
