@@ -35,7 +35,7 @@ resource "aws_lambda_function" "this" {
   timeout     = 30
 
   environment {
-    variables = concat({
+    variables = merge({
       "AWS_LAMBDA_EXEC_WRAPPER": "/opt/bootstrap"
       "PORT": 8000
     }, var.environment)
