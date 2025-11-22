@@ -556,12 +556,14 @@ def generate_teams_for_game(
                 invited_by_id=invited_by_id,
                 team=team_name,
             )
+            p["id"]=player_id
 
     # 4) monta resposta bonita
     response_teams: Dict[str, List[PlayerTeamOut]] = {}
     for team_name, players in teams.items():
         response_teams[team_name] = [
             PlayerTeamOut(
+                id=p["id"],
                 name=p["name_raw"],
                 is_goalkeeper=p["is_goalkeeper"],
                 is_visitor=p["is_visitor"],
