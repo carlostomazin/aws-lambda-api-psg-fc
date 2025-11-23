@@ -13,8 +13,8 @@ class GameRequest(BaseModel):
 
 class GameResponse(BaseModel):
     id: str
-    created_at: time
-    updated_at: Optional[time]
+    created_at: str
+    updated_at: Optional[str]
     game_date: date
     players_total: int
     players_paid: int
