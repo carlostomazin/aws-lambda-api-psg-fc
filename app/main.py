@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from emoji import replace_emoji
 from fastapi import FastAPI, HTTPException, Path
+from fastapi.middleware.cors import CORSMiddleware
 from schemas import (
     GameCreate,
     GameOut,
@@ -17,7 +18,6 @@ from schemas import (
     PlayerTeamOut,
 )
 from supabase import Client, create_client
-from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -236,6 +236,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def health():
     return {"message": "ok"}
@@ -285,6 +286,31 @@ def get_game(
         raise HTTPException(status_code=404, detail="Game não encontrado")
 
     return resp.data[0]
+
+
+# -------------------------------------------------------------------
+# DELETE /games/{game_id} - remove um jogo (e seus vínculos)
+# -------------------------------------------------------------------
+@app.delete(
+    "/games/{game_id}",
+    status_code=204,
+    tags=["games"],
+)
+def delete_game(
+    game_id: str = Path(
+        ...,
+        description="ID do jogo (UUID)",
+        example="0ff24608-a1c8-43d4-a6a4-074a769d1bd7",
+    ),
+):
+    resp = supabase.table("games").delete().eq("id", game_id).execute()
+
+    # Se nenhum registro foi removido, retorna 404
+    if not resp.data:
+        raise HTTPException(status_code=404, detail="Game não encontrado")
+
+    # 204 No Content
+    return
 
 
 # -------------------------------------------------------------------
@@ -556,7 +582,7 @@ def generate_teams_for_game(
                 invited_by_id=invited_by_id,
                 team=team_name,
             )
-            p["id"]=player_id
+            p["id"] = player_id
 
     # 4) monta resposta bonita
     response_teams: Dict[str, List[PlayerTeamOut]] = {}
