@@ -9,13 +9,13 @@ from emoji import replace_emoji
 from fastapi import FastAPI, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import (
-    GameCreate,
-    GameOut,
-    GamePlayerCreate,
+    GamePlayerRequest,
+    GamePlayerTeamResponse,
     GamePlayerUpdate,
+    GameRequest,
+    GameResponse,
     GenerateTeamsRequest,
     GenerateTeamsResponse,
-    PlayerTeamOut,
 )
 from supabase import Client, create_client
 
@@ -85,20 +85,17 @@ def resolve_or_create_player(name_raw: str) -> str | None:
 def upsert_game_player(
     game_id: str,
     player_id: str,
-    *,
     is_goalkeeper: bool,
     is_visitor: bool,
     invited_by_id: Optional[str],
     team: Optional[str],
-):
+) -> GamePlayerTeamResponse:
     data = {
         "game_id": game_id,
         "player_id": player_id,
         "is_goalkeeper": is_goalkeeper,
         "is_visitor": is_visitor,
         "invited_by": invited_by_id,
-        # ATENÇÃO: aqui você está usando coluna "team".
-        # Se no banco for "teams", troca a chave abaixo pra "teams".
         "team": team,
     }
 
@@ -116,7 +113,7 @@ def upsert_game_player(
     if not resp.data:
         raise HTTPException(status_code=500, detail="Erro ao salvar game_player")
 
-    return resp.data[0]
+    return GamePlayerTeamResponse.model_validate(resp.data[0])
 
 
 # -------------------------------------------------------------------
@@ -243,8 +240,8 @@ def health():
 
 
 # 1) Rota para criar (ou garantir) um game
-@app.post("/games", response_model=GameOut, tags=["games"])
-def create_game(payload: GameCreate):
+@app.post("/games", response_model=GameResponse, tags=["games"])
+def create_game(payload: GameRequest):
     game = ensure_game(payload.game_date)
     return game
 
@@ -252,7 +249,7 @@ def create_game(payload: GameCreate):
 # -------------------------------------------------------------------
 # GET /games - lista jogos (opcionalmente por período)
 # -------------------------------------------------------------------
-@app.get("/games", response_model=List[GameOut], tags=["games"])
+@app.get("/games", response_model=List[GameResponse], tags=["games"])
 def list_games(
     from_date: Optional[date] = None,
     to_date: Optional[date] = None,
@@ -272,7 +269,7 @@ def list_games(
 # -------------------------------------------------------------------
 # GET /games/{game_id} - detalhe do jogo
 # -------------------------------------------------------------------
-@app.get("/games/{game_id}", response_model=GameOut, tags=["games"])
+@app.get("/games/{game_id}", response_model=GameResponse, tags=["games"])
 def get_game(
     game_id: str = Path(
         ...,
@@ -291,11 +288,7 @@ def get_game(
 # -------------------------------------------------------------------
 # DELETE /games/{game_id} - remove um jogo (e seus vínculos)
 # -------------------------------------------------------------------
-@app.delete(
-    "/games/{game_id}",
-    status_code=204,
-    tags=["games"],
-)
+@app.delete("/games/{game_id}", status_code=204, tags=["games"])
 def delete_game(
     game_id: str = Path(
         ...,
@@ -318,20 +311,22 @@ def delete_game(
 # -------------------------------------------------------------------
 @app.get(
     "/games/{game_id}/players",
-    response_model=List[PlayerTeamOut],
+    response_model=List[GamePlayerTeamResponse],
     tags=["games/players"],
 )
 def list_game_players(
     game_id: str = Path(
         ...,
         description="ID do jogo (UUID)",
-        example="0ff24608-a1c8-43d4-a6a4-074a769d1bd7",
+        example="878973b4-f837-4647-be14-eb3e54895c1e",
     ),
 ):
     # pega game_players do jogo
     gp_resp = (
         supabase.table("game_players")
-        .select("id, player_id, is_goalkeeper, is_visitor, team")
+        .select(
+            "id, created_at, updated_at, is_goalkeeper, is_visitor, paid, team, player:player_id (*), player_invited:invited_by (*)"
+        )
         .eq("game_id", game_id)
         .execute()
     )
@@ -340,39 +335,16 @@ def list_game_players(
     if not game_players:
         return []
 
-    # busca nomes dos jogadores na tabela players
-    player_ids = list({gp["player_id"] for gp in game_players if gp.get("player_id")})
-
-    players_map: Dict[str, str] = {}
-    if player_ids:
-        pl_resp = (
-            supabase.table("players").select("id, name").in_("id", player_ids).execute()
-        )
-        for row in pl_resp.data or []:
-            players_map[row["id"]] = row["name"]
-
-    result: List[PlayerTeamOut] = []
-    for gp in game_players:
-        name = players_map.get(gp["player_id"], "Desconhecido")
-        result.append(
-            PlayerTeamOut(
-                id=gp["player_id"],
-                name=name,
-                is_goalkeeper=gp.get("is_goalkeeper", False),
-                is_visitor=gp.get("is_visitor", False),
-                paid=gp.get("paid", False),
-                team=gp.get("team"),
-            )
-        )
-
-    return result
+    return game_players
 
 
 # -------------------------------------------------------------------
 # POST /games/{game_id}/players - adiciona um jogador ao jogo
 # -------------------------------------------------------------------
 @app.post(
-    "/games/{game_id}/players", response_model=PlayerTeamOut, tags=["games/players"]
+    "/games/{game_id}/players",
+    response_model=GamePlayerTeamResponse,
+    tags=["games/players"],
 )
 def add_player_to_game(
     game_id: str = Path(
@@ -380,7 +352,7 @@ def add_player_to_game(
         description="ID do jogo (UUID)",
         example="0ff24608-a1c8-43d4-a6a4-074a769d1bd7",
     ),
-    body: GamePlayerCreate = ...,
+    body: GamePlayerRequest = ...,
 ):
     # garante que o jogo existe
     game_resp = (
@@ -389,12 +361,12 @@ def add_player_to_game(
     if not game_resp.data:
         raise HTTPException(status_code=404, detail="Game não encontrado")
 
-    # resolve/ cria jogador principal
+    # resolve/cria jogador principal
     player_id = resolve_or_create_player(body.name)
     if not player_id:
         raise HTTPException(status_code=500, detail="Falha ao resolver jogador")
 
-    # resolve convidador (se enviado)
+    # resolve/cria convidador (se enviado)
     invited_by_id = None
     if body.invited_by:
         invited_by_id = resolve_or_create_player(body.invited_by)
@@ -408,7 +380,7 @@ def add_player_to_game(
         team=body.team,
     )
 
-    return PlayerTeamOut(
+    return GamePlayerTeamResponse(
         name=body.name,
         is_goalkeeper=body.is_goalkeeper,
         is_visitor=body.is_visitor,
@@ -421,7 +393,7 @@ def add_player_to_game(
 # -------------------------------------------------------------------
 @app.patch(
     "/games/{game_id}/players/{player_id}",
-    response_model=PlayerTeamOut,
+    response_model=GamePlayerTeamResponse,
     tags=["games/players"],
 )
 def update_game_player(
@@ -488,7 +460,7 @@ def update_game_player(
         if pl_resp.data:
             player_name = pl_resp.data[0]["name"]
 
-    return PlayerTeamOut(
+    return GamePlayerTeamResponse(
         id=row["id"],
         name=player_name,
         is_goalkeeper=row.get("is_goalkeeper", False),
@@ -566,15 +538,13 @@ def generate_teams_for_game(
         body.habilidosos,
     )
 
+    response_teams: Dict[str, List[GamePlayerTeamResponse]] = {}
     # 3) reflete no banco (players + game_players)
     for team_name, players in teams.items():
         for p in players:
-            # aqui você estava usando name_norm no resolve_or_create_player,
-            # mas sua função procura por name "bonitinho" (com maiúscula etc).
-            # Se quiser, pode trocar pra p["name_raw"].
             player_id = resolve_or_create_player(p["name_raw"])
             invited_by_id = resolve_or_create_player(p["invited_by_name_raw"])
-            upsert_game_player(
+            game_player = upsert_game_player(
                 game_id=game_id,
                 player_id=player_id,
                 is_goalkeeper=p["is_goalkeeper"],
@@ -582,13 +552,13 @@ def generate_teams_for_game(
                 invited_by_id=invited_by_id,
                 team=team_name,
             )
-            p["id"] = player_id
+            response_teams[team_name] = game_player
 
     # 4) monta resposta bonita
-    response_teams: Dict[str, List[PlayerTeamOut]] = {}
+
     for team_name, players in teams.items():
         response_teams[team_name] = [
-            PlayerTeamOut(
+            GamePlayerTeamResponse(
                 id=p["id"],
                 name=p["name_raw"],
                 is_goalkeeper=p["is_goalkeeper"],
