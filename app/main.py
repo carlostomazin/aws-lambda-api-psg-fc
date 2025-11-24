@@ -464,8 +464,14 @@ def generate_teams_for_game(
         player["player_id"] = player_service.resolve_or_create_player(player["name"]).id
 
     # 2) gera times (apenas em memória)
+    goalkeepers = [dict(p) for p in parsed_players if p["is_goalkeeper"] is True]
+    players = [dict(j) for j in parsed_players if j["is_goalkeeper"] is False]
+
     teams = game_team_service.generate_teams(
-        parsed_players, body.zagueiros_fixos, body.habilidosos, body.players_per_team
+        players,
+        body.zagueiros_fixos,
+        body.habilidosos,
+        body.players_per_team,
     )
 
     for team_name, players in teams.items():
@@ -478,5 +484,15 @@ def generate_teams_for_game(
                 p["invited_by_id"],
                 p["team"],
             )
+
+    for g in goalkeepers:
+        game_player_service.upsert_game_player(
+            game_id,
+            g["player_id"],
+            g["is_goalkeeper"],
+            g["is_visitor"],
+            g["invited_by_id"],
+            None,
+        )
 
     return teams

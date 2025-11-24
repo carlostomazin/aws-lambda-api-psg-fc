@@ -92,7 +92,7 @@ class GameTeamService:
         defenders = []
         skilled = []
         others = []
-        players = [j for j in players if j["is_goalkeeper"] is False]
+
         if players_per_team == None:
             players_per_team = 6
 
