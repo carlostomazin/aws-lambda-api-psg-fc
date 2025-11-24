@@ -228,7 +228,7 @@ class GameTeamService:
         for key, players in teams.items():
             for p in players:
                 p["team"] = key
-            all_players.extend(all_players)
+            all_players.extend(players)
 
         for g in goalkeepers:
             g["team"] = None
