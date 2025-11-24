@@ -92,7 +92,10 @@ class GameTeamService:
         defenders = []
         skilled = []
         others = []
-        players = [j for j in players if j["is_goalkeeper"] is False]
+
+        goalkeepers = [dict(p) for p in players if p["is_goalkeeper"] is True]
+        players = [dict(j) for j in players if j["is_goalkeeper"] is False]
+
         if players_per_team == None:
             players_per_team = 6
 
@@ -221,8 +224,14 @@ class GameTeamService:
         # ---------------------------
         # 4) Setar o campo "team"
         # ---------------------------
+        all_players = []
         for key, players in teams.items():
             for p in players:
                 p["team"] = key
+            all_players.extend(all_players)
 
-        return teams
+        for g in goalkeepers:
+            g["team"] = None
+            all_players.append(g)
+
+        return all_players
