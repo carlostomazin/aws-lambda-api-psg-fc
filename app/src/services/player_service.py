@@ -21,3 +21,11 @@ class PlayerService:
             raise HTTPException(status_code=500, detail="Erro ao criar jogador")
 
         return PlayerResponse.model_validate(insert_resp)
+
+    def list_all_players(self) -> list[PlayerResponse]:
+        resp = self.repository.get_all()
+
+        if not resp:
+            return []
+
+        return [PlayerResponse.model_validate(i) for i in resp]

@@ -173,16 +173,24 @@ def health():
     return {"message": "ok"}
 
 
-# 1) Rota para criar (ou garantir) um game
+# -------------------------------------------------------------------
+#  /players
+# -------------------------------------------------------------------
+@app.get("/players", response_model=List[PlayerResponse], tags=["players"])
+def list_players():
+    resp = player_service.list_all_players()
+    return resp
+
+
+# -------------------------------------------------------------------
+#  /games
+# -------------------------------------------------------------------
 @app.post("/games", response_model=GameResponse, tags=["games"])
 def create_game(payload: GameRequest):
     game = ensure_game(payload.game_date)
     return game
 
 
-# -------------------------------------------------------------------
-# GET /games - lista jogos (opcionalmente por período)
-# -------------------------------------------------------------------
 @app.get("/games", response_model=List[GameResponse], tags=["games"])
 def list_games(
     from_date: Optional[date] = None,
@@ -200,9 +208,6 @@ def list_games(
     return resp.data or []
 
 
-# -------------------------------------------------------------------
-# GET /games/{game_id} - detalhe do jogo
-# -------------------------------------------------------------------
 @app.get("/games/{game_id}", response_model=GameResponse, tags=["games"])
 def get_game(
     game_id: str = Path(
@@ -219,9 +224,6 @@ def get_game(
     return resp.data[0]
 
 
-# -------------------------------------------------------------------
-# DELETE /games/{game_id} - remove um jogo (e seus vínculos)
-# -------------------------------------------------------------------
 @app.delete("/games/{game_id}", status_code=204, tags=["games"])
 def delete_game(
     game_id: str = Path(
@@ -241,7 +243,7 @@ def delete_game(
 
 
 # -------------------------------------------------------------------
-# GET /games/{game_id}/players - lista jogadores do jogo
+#  /games/players
 # -------------------------------------------------------------------
 @app.get(
     "/games/{game_id}/players",
@@ -272,9 +274,6 @@ def list_game_players(
     return game_players
 
 
-# -------------------------------------------------------------------
-# POST /games/{game_id}/players - adiciona um jogador ao jogo
-# -------------------------------------------------------------------
 @app.post(
     "/games/{game_id}/players",
     response_model=GamePlayerTeamResponse,
@@ -322,9 +321,6 @@ def add_player_to_game(
     )
 
 
-# -------------------------------------------------------------------
-# PATCH /games/{game_id}/players/{game_player_id} - atualiza flags/time
-# -------------------------------------------------------------------
 @app.patch(
     "/games/{game_id}/players/{player_id}",
     # response_model=GamePlayerTeamResponse,
@@ -404,9 +400,6 @@ def update_game_player(
     )
 
 
-# -------------------------------------------------------------------
-# DELETE /games/{game_id}/players/{game_player_id} - remove jogador do jogo
-# -------------------------------------------------------------------
 @app.delete(
     "/games/{game_id}/players/{game_player_id}", status_code=204, tags=["games/players"]
 )
@@ -436,7 +429,9 @@ def delete_game_player(
     return
 
 
-# 2) Rota para gerar times para um game existente
+# -------------------------------------------------------------------
+#  /games/teams
+# -------------------------------------------------------------------
 @app.post(
     "/games/{game_id}/teams/generate",
     # response_model=GenerateTeamsResponse,

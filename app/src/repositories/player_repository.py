@@ -6,9 +6,11 @@ class PlayerRepository:
     def __init__(self):
         self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    def find_all(self) -> list[dict]:
+    def get_all(self) -> list[dict] | None:
         response = self.supabase.table("players").select("*").order("name").execute()
-        return response.data
+        if response.data:
+            return response.data
+        return None
 
     def get_by_id(self, player_id: str) -> dict | None:
         response = (
