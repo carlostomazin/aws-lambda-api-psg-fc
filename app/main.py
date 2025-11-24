@@ -327,7 +327,7 @@ def add_player_to_game(
 # -------------------------------------------------------------------
 @app.patch(
     "/games/{game_id}/players/{player_id}",
-    response_model=GamePlayerTeamResponse,
+    # response_model=GamePlayerTeamResponse,
     tags=["games/players"],
 )
 def update_game_player(
