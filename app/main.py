@@ -182,7 +182,7 @@ def list_players():
     return resp
 
 
-@app.delete("/players/{player_id}", status_code=204, tags=["games"])
+@app.delete("/players/{player_id}", status_code=204, tags=["players"])
 def delete_player(player_id: str):
     resp = player_service.delete_player(player_id)
 
