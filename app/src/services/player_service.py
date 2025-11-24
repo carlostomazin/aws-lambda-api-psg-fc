@@ -25,7 +25,14 @@ class PlayerService:
     def list_all_players(self) -> list[PlayerResponse]:
         resp = self.repository.get_all()
 
-        if not resp:
-            return []
+        if resp:
+            return [PlayerResponse.model_validate(i) for i in resp]
 
-        return [PlayerResponse.model_validate(i) for i in resp]
+        return []
+
+    def delete_player(self, player_id) -> None:
+        resp = self.repository.delete(player_id)
+
+        if resp:
+            return resp
+        return None

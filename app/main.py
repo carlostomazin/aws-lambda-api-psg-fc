@@ -182,6 +182,16 @@ def list_players():
     return resp
 
 
+@app.delete("/players/{player_id}", status_code=204, tags=["games"])
+def delete_player(player_id: str):
+    resp = player_service.delete_player(player_id)
+
+    if not resp:
+        raise HTTPException(status_code=404, detail="Player não encontrado")
+
+    return
+
+
 # -------------------------------------------------------------------
 #  /games
 # -------------------------------------------------------------------
@@ -401,30 +411,19 @@ def update_game_player(
 
 
 @app.delete(
-    "/games/{game_id}/players/{game_player_id}", status_code=204, tags=["games/players"]
+    "/games/{game_id}/players/{player_id}", status_code=204, tags=["games/players"]
 )
-def delete_game_player(
-    game_id: str = Path(
-        ...,
-        description="ID do jogo (UUID)",
-        example="0ff24608-a1c8-43d4-a6a4-074a769d1bd7",
-    ),
-    game_player_id: str = Path(
-        ...,
-        description="ID do registro em game_players",
-        example="5bb2b67d-5f9e-4a37-b32e-0a2f2b8cb6fc",
-    ),
-):
+def delete_game_player(game_id: str, player_id: str):
     resp = (
         supabase.table("game_players")
         .delete()
-        .eq("id", game_player_id)
+        .eq("player_id", player_id)
         .eq("game_id", game_id)
         .execute()
     )
 
-    # se quiser, pode checar resp.data pra ver se algo foi deletado:
-    # if not resp.data: raise HTTPException(404, "Registro não encontrado")
+    if not resp.data:
+        raise HTTPException(404, "Registro não encontrado")
 
     return
 
