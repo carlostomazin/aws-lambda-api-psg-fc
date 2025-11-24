@@ -1,14 +1,14 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import os
-import re
-import unicodedata
 from datetime import date
 from typing import Dict, List, Optional
 
-from dotenv import load_dotenv
-from emoji import replace_emoji
 from fastapi import FastAPI, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import (
+from src.schemas import (
     GamePlayerRequest,
     GamePlayerTeamResponse,
     GamePlayerUpdate,
@@ -16,10 +16,14 @@ from schemas import (
     GameResponse,
     GenerateTeamsRequest,
     GenerateTeamsResponse,
+    PlayerResponse,
 )
+from src.services import GamePlayerService, GameTeamService, PlayerService
 from supabase import Client, create_client
 
-load_dotenv()
+game_team_service = GameTeamService()
+player_service = PlayerService()
+game_player_service = GamePlayerService()
 
 
 # -------------------------------------------------------------------
@@ -119,86 +123,16 @@ def upsert_game_player(
 # -------------------------------------------------------------------
 # Helpers de texto / parsing
 # -------------------------------------------------------------------
-def normalize_name(name: str) -> str:
-    if not name:
-        return ""
-    nfkd = unicodedata.normalize("NFKD", name)
-    only_ascii = "".join(c for c in nfkd if not unicodedata.combining(c))
-    return re.sub(r"\s+", " ", only_ascii).strip().lower()
-
-
-def parse_jogadores_raw(jogadores_raw: str):
-    jogadores_raw = replace_emoji(jogadores_raw, replace="")
-
-    lines = jogadores_raw.splitlines()
-    section = None
-    players = []
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-
-        if "GOLEIROS" in line.upper():
-            section = "goleiros"
-            continue
-        if "DA CASA" in line.upper():
-            section = "casa"
-            continue
-        if "VISITANTES" in line.upper():
-            section = "visitantes"
-            continue
-        if "NÃO VÃO" in line.upper() or "NAO VAO" in line.upper():
-            section = "nao_vao"
-            continue
-
-        m = re.match(r"^\d+\.\s*(.+)$", line)
-        if not m or section is None:
-            continue
-
-        raw = m.group(1).strip()
-        if not raw or raw == ".":
-            continue
-
-        paren = re.match(r"^(.*?)\s*\(([^)]+)\)\s*$", raw)
-        invited_by_name = None
-        name_part = raw
-        if paren:
-            name_part = paren.group(1).strip()
-            invited_by_name = paren.group(2).strip()
-
-        if section == "nao_vao":
-            continue
-
-        players.append(
-            {
-                "name_raw": name_part,
-                "name_norm": normalize_name(name_part),
-                "invited_by_name_raw": invited_by_name,
-                "invited_by_name_norm": (
-                    normalize_name(invited_by_name) if invited_by_name else None
-                ),
-                "is_goalkeeper": section == "goleiros",
-                "is_visitor": section == "visitantes",
-            }
-        )
-
-    return players
-
-
 def generate_teams(parsed_players, zagueiros_fixos, habilidosos, teams_count=2):
-    zagueiros_fixos_norm = {normalize_name(n) for n in zagueiros_fixos}
-    habilidosos_norm = {normalize_name(n) for n in habilidosos}
-
     defenders = []
     skilled = []
     others = []
 
     for p in parsed_players:
         n = p["name_norm"]
-        if n in zagueiros_fixos_norm:
+        if n in zagueiros_fixos:
             defenders.append(p)
-        elif n in habilidosos_norm:
+        elif n in habilidosos:
             skilled.append(p)
         else:
             others.append(p)
@@ -505,7 +439,7 @@ def delete_game_player(
 # 2) Rota para gerar times para um game existente
 @app.post(
     "/games/{game_id}/teams/generate",
-    response_model=GenerateTeamsResponse,
+    # response_model=GenerateTeamsResponse,
     tags=["games/teams"],
 )
 def generate_teams_for_game(
@@ -516,60 +450,33 @@ def generate_teams_for_game(
     ),
     body: GenerateTeamsRequest = ...,
 ):
-    # garante que o jogo existe
-    game_resp = (
-        supabase.table("games")
-        .select("id, game_date")
-        .eq("id", game_id)
-        .limit(1)
-        .execute()
-    )
-
-    if not game_resp.data:
-        raise HTTPException(status_code=404, detail="Game não encontrado")
-
     # 1) parse do texto
-    parsed_players = parse_jogadores_raw(body.jogadores_raw)
+    parsed_players = game_team_service.parse_jogadores_raw(body.jogadores_raw)
+
+    for player in parsed_players:
+        if player["invited_by_name"]:
+            player["invited_by_id"] = player_service.resolve_or_create_player(
+                player["invited_by_name"]
+            ).id
+        else:
+            player["invited_by_id"] = None
+
+        player["player_id"] = player_service.resolve_or_create_player(player["name"]).id
 
     # 2) gera times (apenas em memória)
-    teams = generate_teams(
-        parsed_players,
-        body.zagueiros_fixos,
-        body.habilidosos,
+    teams = game_team_service.generate_teams(
+        parsed_players, body.zagueiros_fixos, body.habilidosos, body.players_per_team
     )
 
-    response_teams: Dict[str, List[GamePlayerTeamResponse]] = {}
-    # 3) reflete no banco (players + game_players)
     for team_name, players in teams.items():
         for p in players:
-            player_id = resolve_or_create_player(p["name_raw"])
-            invited_by_id = resolve_or_create_player(p["invited_by_name_raw"])
-            game_player = upsert_game_player(
-                game_id=game_id,
-                player_id=player_id,
-                is_goalkeeper=p["is_goalkeeper"],
-                is_visitor=p["is_visitor"],
-                invited_by_id=invited_by_id,
-                team=team_name,
+            game_player_service.upsert_game_player(
+                game_id,
+                p["player_id"],
+                p["is_goalkeeper"],
+                p["is_visitor"],
+                p["invited_by_id"],
+                p["team"],
             )
-            response_teams[team_name] = game_player
 
-    # 4) monta resposta bonita
-
-    for team_name, players in teams.items():
-        response_teams[team_name] = [
-            GamePlayerTeamResponse(
-                id=p["id"],
-                name=p["name_raw"],
-                is_goalkeeper=p["is_goalkeeper"],
-                is_visitor=p["is_visitor"],
-                paid=False,
-                team=p.get("team"),
-            )
-            for p in players
-        ]
-
-    return GenerateTeamsResponse(
-        game_id=game_id,
-        teams=response_teams,
-    )
+    return teams

@@ -70,6 +70,7 @@ class GenerateTeamsRequest(BaseModel):
     jogadores_raw: str
     zagueiros_fixos: List[str]
     habilidosos: List[str]
+    players_per_team: Optional[int] = 6
 
 
 class GenerateTeamsResponse(BaseModel):
