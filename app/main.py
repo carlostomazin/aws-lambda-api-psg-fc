@@ -393,7 +393,7 @@ def update_game_player(
         )
         if pl_resp.data:
             player_name = pl_resp.data[0]["name"]
-
+    return {"message": "ok"}
     return GamePlayerTeamResponse(
         id=row["id"],
         name=player_name,
