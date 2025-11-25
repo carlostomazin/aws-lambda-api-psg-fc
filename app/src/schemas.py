@@ -29,7 +29,7 @@ class GameResponse(BaseModel):
 class GameUpdate(BaseModel):
     game_date: date = None
     game_price: float = None
-    price_per_player: float
+    price_per_player: float = None
 
 
 # -------------------------------------------------------------------
