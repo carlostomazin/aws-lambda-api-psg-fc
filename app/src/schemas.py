@@ -1,7 +1,7 @@
-from datetime import date, datetime, time
+from datetime import date
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 # -------------------------------------------------------------------
@@ -19,6 +19,12 @@ class GameResponse(BaseModel):
     players_total: int
     players_paid: int
     players_visitors: int
+    game_price: float
+
+
+class GameUpdate(BaseModel):
+    game_date: date = None
+    game_price: float = None
 
 
 # -------------------------------------------------------------------
@@ -29,6 +35,7 @@ class PlayerResponse(BaseModel):
     created_at: str
     updated_at: Optional[str]
     name: str
+
 
 # -------------------------------------------------------------------
 # games/players
@@ -43,7 +50,6 @@ class GamePlayerRequest(BaseModel):
 
 
 class GamePlayerUpdate(BaseModel):
-    updated_at: time = datetime.now()
     is_goalkeeper: Optional[bool] = None
     is_visitor: Optional[bool] = None
     paid: Optional[bool] = None

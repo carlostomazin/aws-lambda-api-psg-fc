@@ -6,6 +6,7 @@ create table public.games (
   players_total integer not null default 0,
   players_paid integer not null default 0,
   players_visitors integer not null default 0,
+  game_price numeric(10,2) NOT NULL DEFAULT 0.00,
   constraint game_pkey primary key (id),
   constraint game_date_key unique (game_date)
 ) TABLESPACE pg_default;

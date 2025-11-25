@@ -14,16 +14,17 @@ from src.schemas import (
     GamePlayerUpdate,
     GameRequest,
     GameResponse,
+    GameUpdate,
     GenerateTeamsRequest,
-    GenerateTeamsResponse,
     PlayerResponse,
 )
-from src.services import GamePlayerService, GameTeamService, PlayerService
+from src.services import GamePlayerService, GameService, GameTeamService, PlayerService
 from supabase import Client, create_client
 
 game_team_service = GameTeamService()
 player_service = PlayerService()
 game_player_service = GamePlayerService()
+game_service = GameService()
 
 
 # -------------------------------------------------------------------
@@ -201,6 +202,17 @@ def create_game(payload: GameRequest):
     return game
 
 
+@app.patch("/games/{game_id}", tags=["games"])
+def update_game(game_id: str, body: GameUpdate):
+    update_data: Dict[str, object] = {}
+    if body.game_date is not None:
+        update_data["game_date"] = body.game_date
+    if body.game_price is not None:
+        update_data["game_price"] = body.game_price
+
+    return game_service.update_game(game_id, update_data)
+
+
 @app.get("/games", response_model=List[GameResponse], tags=["games"])
 def list_games(
     from_date: Optional[date] = None,
@@ -219,13 +231,7 @@ def list_games(
 
 
 @app.get("/games/{game_id}", response_model=GameResponse, tags=["games"])
-def get_game(
-    game_id: str = Path(
-        ...,
-        description="ID do jogo (UUID)",
-        example="0ff24608-a1c8-43d4-a6a4-074a769d1bd7",
-    ),
-):
+def get_game(game_id: str):
     resp = supabase.table("games").select("*").eq("id", game_id).limit(1).execute()
 
     if not resp.data:
@@ -235,20 +241,12 @@ def get_game(
 
 
 @app.delete("/games/{game_id}", status_code=204, tags=["games"])
-def delete_game(
-    game_id: str = Path(
-        ...,
-        description="ID do jogo (UUID)",
-        example="0ff24608-a1c8-43d4-a6a4-074a769d1bd7",
-    ),
-):
+def delete_game(game_id: str):
     resp = supabase.table("games").delete().eq("id", game_id).execute()
 
-    # Se nenhum registro foi removido, retorna 404
     if not resp.data:
         raise HTTPException(status_code=404, detail="Game não encontrado")
 
-    # 204 No Content
     return
 
 
@@ -336,19 +334,7 @@ def add_player_to_game(
     # response_model=GamePlayerTeamResponse,
     tags=["games/players"],
 )
-def update_game_player(
-    game_id: str = Path(
-        ...,
-        description="ID do jogo (UUID)",
-        example="0ff24608-a1c8-43d4-a6a4-074a769d1bd7",
-    ),
-    player_id: str = Path(
-        ...,
-        description="ID do registro em players",
-        example="5bb2b67d-5f9e-4a37-b32e-0a2f2b8cb6fc",
-    ),
-    body: GamePlayerUpdate = ...,
-):
+def update_game_player(game_id: str, player_id: str, body: GamePlayerUpdate):
     # monta dict de update
     update_data: Dict[str, object] = {}
     if body.is_goalkeeper is not None:
