@@ -15,10 +15,11 @@ begin
   where game_id = p_game;
 
   update public.games g
-  set players_total = coalesce(totals.total, 0),
-      players_paid = coalesce(totals.paid, 0),
-      players_visitors = coalesce(totals.visitors, 0),
-      updated_at = now()
+  set players_total     = coalesce(totals.total, 0),
+      players_paid      = coalesce(totals.paid, 0),
+      players_visitors  = coalesce(totals.visitors, 0),
+      total_amount      = coalesce(totals.paid, 0) * g.price_per_player,
+      updated_at        = now()
   where g.id = p_game;
 end;
 $$;

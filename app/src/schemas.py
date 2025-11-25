@@ -21,6 +21,7 @@ class GameResponse(BaseModel):
     players_total: int
     players_paid: int
     players_visitors: int
+    total_amount: float
     game_price: float
     price_per_player: float
 
