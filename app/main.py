@@ -209,6 +209,8 @@ def update_game(game_id: str, body: GameUpdate):
         update_data["game_date"] = body.game_date
     if body.game_price is not None:
         update_data["game_price"] = body.game_price
+    if body.price_per_player is not None:
+        update_data["price_per_player"] = body.price_per_player
 
     return game_service.update_game(game_id, update_data)
 

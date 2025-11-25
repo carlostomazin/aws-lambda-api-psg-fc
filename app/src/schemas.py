@@ -9,6 +9,8 @@ from pydantic import BaseModel
 # -------------------------------------------------------------------
 class GameRequest(BaseModel):
     game_date: date
+    game_price: Optional[float] = 0.00
+    price_per_player: Optional[float] = 12.00
 
 
 class GameResponse(BaseModel):
@@ -20,11 +22,13 @@ class GameResponse(BaseModel):
     players_paid: int
     players_visitors: int
     game_price: float
+    price_per_player: float
 
 
 class GameUpdate(BaseModel):
     game_date: date = None
     game_price: float = None
+    price_per_player: float
 
 
 # -------------------------------------------------------------------
