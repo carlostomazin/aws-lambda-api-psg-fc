@@ -11,6 +11,7 @@ class GameRequest(BaseModel):
     game_date: date
     game_price: Optional[float] = 0.00
     price_per_player: Optional[float] = 12.00
+    goalkeepers_pay: Optional[bool] = False
 
 
 class GameResponse(BaseModel):
@@ -30,6 +31,7 @@ class GameUpdate(BaseModel):
     game_date: date = None
     game_price: float = None
     price_per_player: float = None
+    goalkeepers_pay: bool = None
 
 
 # -------------------------------------------------------------------

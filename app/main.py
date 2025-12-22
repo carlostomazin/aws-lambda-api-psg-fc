@@ -198,8 +198,7 @@ def delete_player(player_id: str):
 # -------------------------------------------------------------------
 @app.post("/games", response_model=GameResponse, tags=["games"])
 def create_game(payload: GameRequest):
-    game = ensure_game(payload.game_date)
-    return game
+    return ensure_game(payload.game_date)
 
 
 @app.patch("/games/{game_id}", tags=["games"])
@@ -211,6 +210,8 @@ def update_game(game_id: str, body: GameUpdate):
         update_data["game_price"] = body.game_price
     if body.price_per_player is not None:
         update_data["price_per_player"] = body.price_per_player
+    if body.goalkeepers_pay is not None:
+        update_data["goalkeepers_pay"] = body.goalkeepers_pay
 
     return game_service.update_game(game_id, update_data)
 
