@@ -18,7 +18,6 @@ class GamePlayerService:
         is_visitor: bool,
         invited_by_id: Optional[str],
         team: Optional[str],
-        paid: Optional[bool],
     ) -> GamePlayerTeamResponse:
         data = {
             "game_id": game_id,
@@ -26,7 +25,6 @@ class GamePlayerService:
             "is_goalkeeper": is_goalkeeper,
             "is_visitor": is_visitor,
             "invited_by": invited_by_id,
-            "paid": paid,
             "team": team,
         }
 
