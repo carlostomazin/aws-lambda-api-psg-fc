@@ -19,3 +19,25 @@ class GamePlayerRepository:
             return None
 
         return resp.data[0]
+
+    def delete(self, player_id: str, game_id: str):
+        response = (
+            self.supabase.table("players")
+            .delete()
+            .eq("id", player_id)
+            .eq("game_id", game_id)
+            .execute()
+        )
+        return response.data
+
+    def update(self, game_id, player_id, payload):
+        response = (
+            self.supabase.table("game_players")
+            .update(payload)
+            .eq("game_id", game_id)
+            .eq("player_id", player_id)
+            .execute()
+        )
+        if response.data:
+            return response.data[0]
+        return

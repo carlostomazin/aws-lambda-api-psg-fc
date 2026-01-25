@@ -14,3 +14,12 @@ class GameRepository:
         if response.data:
             return response.data[0]
         return None
+
+    def get_by_id(self, game_id: str) -> dict | None:
+        """Get game by ID from Supabase"""
+        response = (
+            self.supabase.table("games").select("*").eq("id", game_id).execute()
+        )
+        if response.data:
+            return response.data[0]
+        return None

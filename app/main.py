@@ -285,60 +285,46 @@ def list_game_players(
     return game_players
 
 
-@app.post(
-    "/games/{game_id}/players",
-    response_model=GamePlayerTeamResponse,
-    tags=["games/players"],
-)
-def add_player_to_game(
-    game_id: str = Path(
-        ...,
-        description="ID do jogo (UUID)",
-        example="0ff24608-a1c8-43d4-a6a4-074a769d1bd7",
-    ),
-    body: GamePlayerRequest = ...,
-):
-    # garante que o jogo existe
-    game_resp = (
-        supabase.table("games").select("id").eq("id", game_id).limit(1).execute()
-    )
-    if not game_resp.data:
-        raise HTTPException(status_code=404, detail="Game não encontrado")
+@app.post("/games/{game_id}/players", tags=["games/players"])
+def add_player_to_game(game_id: str, body: GamePlayerRequest):
+    return game_player_service.add_player_to_game(game_id, body)
 
-    # resolve/cria jogador principal
-    player_id = resolve_or_create_player(body.name)
-    if not player_id:
-        raise HTTPException(status_code=500, detail="Falha ao resolver jogador")
+    # # garante que o jogo existe
+    # game_resp = (
+    #     supabase.table("games").select("id").eq("id", game_id).limit(1).execute()
+    # )
+    # if not game_resp.data:
+    #     raise HTTPException(status_code=404, detail="Game não encontrado")
 
-    # resolve/cria convidador (se enviado)
-    invited_by_id = None
-    if body.invited_by:
-        invited_by_id = resolve_or_create_player(body.invited_by)
+    # # resolve/cria jogador principal
+    # player_id = resolve_or_create_player(body.name)
+    # if not player_id:
+    #     raise HTTPException(status_code=500, detail="Falha ao resolver jogador")
 
-    upsert_game_player(
-        game_id=game_id,
-        player_id=player_id,
-        is_goalkeeper=body.is_goalkeeper,
-        is_visitor=body.is_visitor,
-        invited_by_id=invited_by_id,
-        team=body.team,
-    )
+    # # resolve/cria convidador (se enviado)
+    # invited_by_id = None
+    # if body.invited_by:
+    #     invited_by_id = resolve_or_create_player(body.invited_by)
 
-    return GamePlayerTeamResponse(
-        name=body.name,
-        is_goalkeeper=body.is_goalkeeper,
-        is_visitor=body.is_visitor,
-        team=body.team,
-    )
+    # upsert_game_player(
+    #     game_id=game_id,
+    #     player_id=player_id,
+    #     is_goalkeeper=body.is_goalkeeper,
+    #     is_visitor=body.is_visitor,
+    #     invited_by_id=invited_by_id,
+    #     team=body.team,
+    # )
+
+    # return GamePlayerTeamResponse(
+    #     name=body.name,
+    #     is_goalkeeper=body.is_goalkeeper,
+    #     is_visitor=body.is_visitor,
+    #     team=body.team,
+    # )
 
 
-@app.patch(
-    "/games/{game_id}/players/{player_id}",
-    # response_model=GamePlayerTeamResponse,
-    tags=["games/players"],
-)
+@app.patch("/games/{game_id}/players/{player_id}", tags=["games/players"])
 def update_game_player(game_id: str, player_id: str, body: GamePlayerUpdate):
-    # monta dict de update
     update_data: Dict[str, object] = {}
     if body.is_goalkeeper is not None:
         update_data["is_goalkeeper"] = body.is_goalkeeper
@@ -348,73 +334,27 @@ def update_game_player(game_id: str, player_id: str, body: GamePlayerUpdate):
         update_data["paid"] = body.paid
     if body.team is not None:
         update_data["team"] = body.team
-
-    invited_by_id = None
     if body.invited_by is not None:
-        # se vier string vazia, zera; se vier nome, resolve/cria
-        if body.invited_by.strip() == "":
-            invited_by_id = None
-        else:
-            invited_by_id = resolve_or_create_player(body.invited_by)
-        update_data["invited_by"] = invited_by_id
+        update_data["invited_by"] = body.invited_by
 
-    if not update_data:
-        raise HTTPException(status_code=400, detail="Nada para atualizar")
-
-    resp = (
-        supabase.table("game_players")
-        .update(update_data)
-        .eq("game_id", game_id)
-        .eq("player_id", player_id)
-        .execute()
-    )
+    resp = game_player_service.update_game_player(game_id, player_id, update_data)
 
     if not resp.data:
         raise HTTPException(
             status_code=404, detail="Registro de game_player não encontrado"
         )
 
-    row = resp.data[0]
-
-    # busca nome do jogador
-    player_name = "Desconhecido"
-    if row.get("player_id"):
-        pl_resp = (
-            supabase.table("players")
-            .select("name")
-            .eq("id", row["player_id"])
-            .limit(1)
-            .execute()
-        )
-        if pl_resp.data:
-            player_name = pl_resp.data[0]["name"]
-    return {"message": "ok"}
-    return GamePlayerTeamResponse(
-        id=row["id"],
-        name=player_name,
-        is_goalkeeper=row.get("is_goalkeeper", False),
-        is_visitor=row.get("is_visitor", False),
-        paid=row.get("paid", False),
-        team=row.get("team"),
-    )
+    return resp
 
 
 @app.delete(
     "/games/{game_id}/players/{player_id}", status_code=204, tags=["games/players"]
 )
 def delete_game_player(game_id: str, player_id: str):
-    resp = (
-        supabase.table("game_players")
-        .delete()
-        .eq("player_id", player_id)
-        .eq("game_id", game_id)
-        .execute()
-    )
+    resp = game_player_service.delete_game_player(game_id, player_id)
 
-    if not resp.data:
-        raise HTTPException(404, "Registro não encontrado")
-
-    return
+    if not resp:
+        raise HTTPException(status_code=404, detail="Registro não encontrado")
 
 
 # -------------------------------------------------------------------
