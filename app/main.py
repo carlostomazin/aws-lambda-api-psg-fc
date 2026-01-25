@@ -306,7 +306,7 @@ def update_player_in_game(game_id: str, player_id: str, body: GamePlayerUpdate):
 
     resp = game_player_service.update_game_player(game_id, player_id, update_data)
 
-    if not resp.data:
+    if not resp:
         raise HTTPException(
             status_code=404, detail="Registro de game_player não encontrado"
         )
