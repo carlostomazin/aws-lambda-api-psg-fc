@@ -49,9 +49,9 @@ class PlayerResponse(BaseModel):
 # -------------------------------------------------------------------
 class GamePlayerRequest(BaseModel):
     name: str
-    is_goalkeeper: bool = False
-    is_visitor: bool = False
-    paid: bool = False
+    is_goalkeeper: Optional[bool] = False
+    is_visitor: Optional[bool] = False
+    paid: Optional[bool] = False
     invited_by: Optional[str] = None
     team: Optional[str] = None
 

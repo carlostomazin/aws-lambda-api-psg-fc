@@ -286,45 +286,12 @@ def list_game_players(
 
 
 @app.post("/games/{game_id}/players", tags=["games/players"])
-def add_player_to_game(game_id: str, body: GamePlayerRequest):
-    return game_player_service.add_player_to_game(game_id, body)
-
-    # # garante que o jogo existe
-    # game_resp = (
-    #     supabase.table("games").select("id").eq("id", game_id).limit(1).execute()
-    # )
-    # if not game_resp.data:
-    #     raise HTTPException(status_code=404, detail="Game não encontrado")
-
-    # # resolve/cria jogador principal
-    # player_id = resolve_or_create_player(body.name)
-    # if not player_id:
-    #     raise HTTPException(status_code=500, detail="Falha ao resolver jogador")
-
-    # # resolve/cria convidador (se enviado)
-    # invited_by_id = None
-    # if body.invited_by:
-    #     invited_by_id = resolve_or_create_player(body.invited_by)
-
-    # upsert_game_player(
-    #     game_id=game_id,
-    #     player_id=player_id,
-    #     is_goalkeeper=body.is_goalkeeper,
-    #     is_visitor=body.is_visitor,
-    #     invited_by_id=invited_by_id,
-    #     team=body.team,
-    # )
-
-    # return GamePlayerTeamResponse(
-    #     name=body.name,
-    #     is_goalkeeper=body.is_goalkeeper,
-    #     is_visitor=body.is_visitor,
-    #     team=body.team,
-    # )
+def add_player_in_game(game_id: str, body: GamePlayerRequest):
+    return game_player_service.add_player_in_game(game_id, body)
 
 
 @app.patch("/games/{game_id}/players/{player_id}", tags=["games/players"])
-def update_game_player(game_id: str, player_id: str, body: GamePlayerUpdate):
+def update_player_in_game(game_id: str, player_id: str, body: GamePlayerUpdate):
     update_data: Dict[str, object] = {}
     if body.is_goalkeeper is not None:
         update_data["is_goalkeeper"] = body.is_goalkeeper
