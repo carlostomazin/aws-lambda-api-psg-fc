@@ -20,12 +20,12 @@ class GamePlayerRepository:
 
         return resp.data[0]
 
-    def delete(self, player_id: str, game_id: str):
+    def delete(self, game_id: str, player_id: str):
         response = (
             self.supabase.table("game_players")
             .delete()
-            .eq("player_id", player_id)
             .eq("game_id", game_id)
+            .eq("player_id", player_id)
             .execute()
         )
         return response.data
