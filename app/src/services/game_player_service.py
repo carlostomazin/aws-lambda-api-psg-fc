@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional
 
 from src.repositories import GamePlayerRepository
 from src.schemas import GamePlayerRequest, GamePlayerTeamResponse
