@@ -8,7 +8,7 @@ class GamePlayerRepository:
     def __init__(self):
         self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    def get_by_player_id(self, player_id: str) -> dict | None:
+    def get_by_player_id(self, player_id: str) -> list[dict] | None:
         response = (
             self.supabase.table("game_players")
             .select("*")
@@ -16,7 +16,7 @@ class GamePlayerRepository:
             .execute()
         )
         if response.data:
-            return response.data[0]
+            return response.data
         return None
 
     def upsert(self, data) -> dict:
