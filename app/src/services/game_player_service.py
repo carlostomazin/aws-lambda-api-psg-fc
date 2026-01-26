@@ -35,6 +35,9 @@ class GamePlayerService:
     def delete_player_in_game(self, game_id, player_id):
         return self.repository.delete(game_id, player_id)
 
+    def get_player_by_id_in_game(self, game_id, player_id):
+        return self.repository.get_by_player_id(game_id, player_id)
+
     def update_game_player(self, game_id, player_id, payload):
         player_service = PlayerService()
         invited_by = payload.get("invited_by")

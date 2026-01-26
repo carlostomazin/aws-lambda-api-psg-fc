@@ -1,14 +1,18 @@
 from fastapi import HTTPException
-from src.repositories import PlayerRepository
+from src.repositories import GamePlayerRepository, PlayerRepository
 from src.schemas import PlayerResponse
 
 
 class PlayerService:
     def __init__(self):
         self.repository = PlayerRepository()
+        self.game_player_repository = GamePlayerRepository()
 
     def get_player_by_id(self, player_id: str) -> dict | None:
         return self.repository.get_by_id(player_id)
+
+    def get_games_by_player_id(self, player_id: str) -> list[dict] | None:
+        return self.game_player_repository.get_by_player_id(player_id)
 
     def resolve_or_create_player(self, name: str) -> PlayerResponse:
         name_clean = name.strip()

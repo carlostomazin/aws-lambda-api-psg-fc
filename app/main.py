@@ -185,6 +185,12 @@ def get_player_by_id(player_id: str):
     return resp
 
 
+@app.get("/players/{player_id}/games", tags=["players"])
+def get_games_by_player_id(player_id: str):
+    resp = player_service.get_games_by_player_id(player_id)
+    return resp
+
+
 @app.get("/players", response_model=List[PlayerResponse], tags=["players"])
 def list_players():
     resp = player_service.list_all_players()
