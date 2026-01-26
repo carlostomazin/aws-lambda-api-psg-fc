@@ -22,9 +22,9 @@ class GamePlayerRepository:
 
     def delete(self, player_id: str, game_id: str):
         response = (
-            self.supabase.table("players")
+            self.supabase.table("game_players")
             .delete()
-            .eq("id", player_id)
+            .eq("player_id", player_id)
             .eq("game_id", game_id)
             .execute()
         )

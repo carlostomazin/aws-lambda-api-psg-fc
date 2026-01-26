@@ -32,7 +32,7 @@ class GamePlayerService:
 
         return resp
 
-    def delete_game_player(self, player_id, game_id):
+    def delete_player_in_game(self, player_id, game_id):
         return self.repository.delete(player_id, game_id)
 
     def update_game_player(self, game_id, player_id, payload):

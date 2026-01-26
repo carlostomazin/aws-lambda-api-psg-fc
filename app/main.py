@@ -317,8 +317,8 @@ def update_player_in_game(game_id: str, player_id: str, body: GamePlayerUpdate):
 @app.delete(
     "/games/{game_id}/players/{player_id}", status_code=204, tags=["games/players"]
 )
-def delete_game_player(game_id: str, player_id: str):
-    resp = game_player_service.delete_game_player(game_id, player_id)
+def delete_player_in_game(game_id: str, player_id: str):
+    resp = game_player_service.delete_player_in_game(game_id, player_id)
 
     if not resp:
         raise HTTPException(status_code=404, detail="Registro não encontrado")
