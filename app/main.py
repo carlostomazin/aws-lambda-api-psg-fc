@@ -177,6 +177,14 @@ def health():
 # -------------------------------------------------------------------
 #  /players
 # -------------------------------------------------------------------
+@app.get("/players/{player_id}", tags=["players"])
+def get_player_by_id(player_id: str):
+    resp = player_service.get_player_by_id(player_id)
+    if not resp:
+        raise HTTPException(status_code=404, detail="Player não encontrado")
+    return resp
+
+
 @app.get("/players", response_model=List[PlayerResponse], tags=["players"])
 def list_players():
     resp = player_service.list_all_players()

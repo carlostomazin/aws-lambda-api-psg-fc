@@ -7,6 +7,9 @@ class PlayerService:
     def __init__(self):
         self.repository = PlayerRepository()
 
+    def get_player_by_id(self, player_id: str) -> dict | None:
+        return self.repository.get_by_id(player_id)
+
     def resolve_or_create_player(self, name: str) -> PlayerResponse:
         name_clean = name.strip()
 
