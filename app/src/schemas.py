@@ -47,23 +47,6 @@ class PlayerResponse(BaseModel):
 # -------------------------------------------------------------------
 # games/players
 # -------------------------------------------------------------------
-class GamePlayerRequest(BaseModel):
-    name: str
-    is_goalkeeper: Optional[bool] = False
-    is_visitor: Optional[bool] = False
-    paid: Optional[bool] = False
-    invited_by: Optional[str] = None
-    team: Optional[str] = None
-
-
-class GamePlayerUpdate(BaseModel):
-    is_goalkeeper: Optional[bool] = None
-    is_visitor: Optional[bool] = None
-    paid: Optional[bool] = None
-    invited_by: Optional[str] = None
-    team: Optional[str] = None
-
-
 class GamePlayerTeamResponse(BaseModel):
     id: str
     created_at: str

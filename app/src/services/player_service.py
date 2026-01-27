@@ -14,6 +14,17 @@ class PlayerService:
     def get_games_by_player_id(self, player_id: str) -> list[dict] | None:
         return self.game_player_repository.get_by_player_id(player_id)
 
+    def get_player_by_name(self, name: str) -> dict | None:
+        name = name.strip()
+        return self.repository.get_by_name(name)
+
+    def get_or_create_player_by_name(self, name: str) -> dict:
+        name = name.strip()
+        player = self.get_player_by_name(name)
+        if player:
+            return player
+        return self.repository.create(name)
+
     def resolve_or_create_player(self, name: str) -> PlayerResponse:
         name_clean = name.strip()
 

@@ -9,16 +9,21 @@ from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
 from src.schemas import (
-    GamePlayerRequest,
     GamePlayerTeamResponse,
-    GamePlayerUpdate,
     GameRequest,
     GameResponse,
     GameUpdate,
     GenerateTeamsRequest,
     PlayerResponse,
 )
-from src.services import GamePlayerService, GameService, GameTeamService, PlayerService
+from src.services import (
+    GamePlayerAddSchema,
+    GamePlayerService,
+    GamePlayerUpdateSchema,
+    GameService,
+    GameTeamService,
+    PlayerService,
+)
 from supabase import Client, create_client
 
 game_team_service = GameTeamService()
@@ -180,8 +185,6 @@ def health():
 @app.get("/players/{player_id}", tags=["players"])
 def get_player_by_id(player_id: str):
     resp = player_service.get_player_by_id(player_id)
-    if not resp:
-        raise HTTPException(status_code=404, detail="Player não encontrado")
     return resp
 
 
@@ -200,11 +203,7 @@ def list_players():
 @app.delete("/players/{player_id}", status_code=204, tags=["players"])
 def delete_player(player_id: str):
     resp = player_service.delete_player(player_id)
-
-    if not resp:
-        raise HTTPException(status_code=404, detail="Player não encontrado")
-
-    return
+    return resp
 
 
 # -------------------------------------------------------------------
@@ -300,32 +299,13 @@ def list_game_players(
 
 
 @app.post("/games/{game_id}/players", tags=["games/players"])
-def add_player_in_game(game_id: str, body: GamePlayerRequest):
+def add_player_in_game(game_id: str, body: GamePlayerAddSchema):
     return game_player_service.add_player_in_game(game_id, body)
 
 
 @app.patch("/games/{game_id}/players/{player_id}", tags=["games/players"])
-def update_player_in_game(game_id: str, player_id: str, body: GamePlayerUpdate):
-    update_data: Dict[str, object] = {}
-    if body.is_goalkeeper is not None:
-        update_data["is_goalkeeper"] = body.is_goalkeeper
-    if body.is_visitor is not None:
-        update_data["is_visitor"] = body.is_visitor
-    if body.paid is not None:
-        update_data["paid"] = body.paid
-    if body.team is not None:
-        update_data["team"] = body.team
-    if body.invited_by is not None:
-        update_data["invited_by"] = body.invited_by
-
-    resp = game_player_service.update_game_player(game_id, player_id, update_data)
-
-    if not resp:
-        raise HTTPException(
-            status_code=404, detail="Registro de game_player não encontrado"
-        )
-
-    return resp
+def update_player_in_game(game_id: str, player_id: str, body: GamePlayerUpdateSchema):
+    return game_player_service.update_player_in_game(game_id, player_id, body)
 
 
 @app.delete(
