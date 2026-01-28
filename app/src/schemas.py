@@ -7,11 +7,7 @@ from pydantic import BaseModel
 # -------------------------------------------------------------------
 # games
 # -------------------------------------------------------------------
-class GameRequest(BaseModel):
-    game_date: date
-    game_price: Optional[float] = 0.00
-    price_per_player: Optional[float] = 12.00
-    goalkeepers_pay: Optional[bool] = False
+
 
 
 class GameResponse(BaseModel):

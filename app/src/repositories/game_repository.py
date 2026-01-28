@@ -23,3 +23,22 @@ class GameRepository:
         if response.data:
             return response.data[0]
         return None
+
+    def get_by_date(self, game_date: str) -> dict | None:
+        """Get game by date from Supabase"""
+        response = (
+            self.supabase.table("games")
+            .select("*")
+            .eq("game_date", game_date)
+            .execute()
+        )
+        if response.data:
+            return response.data[0]
+        return None
+
+    def create(self, payload: dict) -> dict | None:
+        """Create new game in Supabase"""
+        response = self.supabase.table("games").insert(payload).execute()
+        if response.data:
+            return response.data[0]
+        return None

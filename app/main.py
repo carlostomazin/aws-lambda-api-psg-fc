@@ -46,20 +46,12 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # -------------------------------------------------------------------
 def ensure_game(game_date: date) -> dict:
     """Retorna o jogo da data, criando se não existir."""
-    resp = (
-        supabase.table("games")
-        .select("*")
-        .eq("game_date", game_date.isoformat())
-        .limit(1)
-        .execute()
-    )
+    resp = supabase.table("games").select("*").eq("game_date", game_date.isoformat()).limit(1).execute()
 
     if resp.data:
         return resp.data[0]
 
-    insert_resp = (
-        supabase.table("games").insert({"game_date": game_date.isoformat()}).execute()
-    )
+    insert_resp = supabase.table("games").insert({"game_date": game_date.isoformat()}).execute()
 
     if not insert_resp.data:
         raise HTTPException(status_code=500, detail="Erro ao criar jogo")
@@ -73,13 +65,7 @@ def resolve_or_create_player(name_raw: str) -> str | None:
 
     name_clean = name_raw.strip()
 
-    resp = (
-        supabase.table("players")
-        .select("id, name")
-        .ilike("name", name_clean)
-        .limit(1)
-        .execute()
-    )
+    resp = supabase.table("players").select("id, name").ilike("name", name_clean).limit(1).execute()
 
     if resp.data:
         return resp.data[0]["id"]
@@ -110,15 +96,9 @@ def upsert_game_player(
     }
 
     try:
-        resp = (
-            supabase.table("game_players")
-            .upsert(data, on_conflict="game_id,player_id")
-            .execute()
-        )
+        resp = supabase.table("game_players").upsert(data, on_conflict="game_id,player_id").execute()
     except Exception as err:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao salvar game_player: {err}"
-        )
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar game_player: {err}")
 
     if not resp.data:
         raise HTTPException(status_code=500, detail="Erro ao salvar game_player")
@@ -211,7 +191,7 @@ def delete_player(player_id: str):
 # -------------------------------------------------------------------
 @app.post("/games", response_model=GameResponse, tags=["games"])
 def create_game(payload: GameRequest):
-    return ensure_game(payload.game_date)
+    return game_service.get_or_create_game(payload)
 
 
 @app.patch("/games/{game_id}", tags=["games"])
@@ -308,9 +288,7 @@ def update_player_in_game(game_id: str, player_id: str, body: GamePlayerUpdateSc
     return game_player_service.update_player_in_game(game_id, player_id, body)
 
 
-@app.delete(
-    "/games/{game_id}/players/{player_id}", status_code=204, tags=["games/players"]
-)
+@app.delete("/games/{game_id}/players/{player_id}", status_code=204, tags=["games/players"])
 def delete_player_in_game(game_id: str, player_id: str):
     game_player_service.delete_player_in_game(game_id, player_id)
 
@@ -336,9 +314,7 @@ def generate_teams_for_game(
 
     for player in parsed_players:
         if player["invited_by_name"]:
-            player["invited_by_id"] = player_service.resolve_or_create_player(
-                player["invited_by_name"]
-            ).id
+            player["invited_by_id"] = player_service.resolve_or_create_player(player["invited_by_name"]).id
         else:
             player["invited_by_id"] = None
 
