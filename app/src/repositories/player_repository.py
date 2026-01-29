@@ -12,6 +12,23 @@ class PlayerRepository:
             return response.data
         return None
 
+    def get(self, filters: dict | None = None) -> list[dict] | None:
+        query = self.supabase.table("players").select("*")
+
+        if filters:
+            for field, value in filters.items():
+                if value is None:
+                    continue  # ignora filtros vazios
+
+                # se vier lista/tupla, vira IN
+                if isinstance(value, (list, tuple, set)):
+                    query = query.in_(field, list(value))
+                else:
+                    query = query.eq(field, value)
+
+        response = query.execute()
+        return response.data or None
+
     def get_by_id(self, player_id: str) -> dict | None:
         response = (
             self.supabase.table("players").select("*").eq("id", player_id).execute()
@@ -33,22 +50,21 @@ class PlayerRepository:
             return response.data[0]
         return None
 
-    def create(self, name: str) -> dict | None:
-        payload = {"name": name}
-        response = self.supabase.table("players").insert(payload).execute()
+    def create(self, body: dict) -> dict | None:
+        response = self.supabase.table("players").insert(body).execute()
         if response.data:
             return response.data[0]
         return None
 
-    def update(self, player_id: str, payload: dict) -> dict | None:
+    def update(self, player_id: str, body: dict) -> dict | None:
         """Update player data in Supabase"""
         response = (
-            self.supabase.table("players").update(payload).eq("id", player_id).execute()
+            self.supabase.table("players").update(body).eq("id", player_id).execute()
         )
         if response.data:
             return response.data[0]
         return None
 
-    def delete(self, player_id: str) -> list[dict]:
-        response = self.supabase.table("players").delete().eq("id", player_id).execute()
-        return response.data
+    def delete(self, player_id: str) -> None:
+        self.supabase.table("players").delete().eq("id", player_id).execute()
+        return None

@@ -2,8 +2,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 from src.repositories import GamePlayerRepository
-from src.schemas import GamePlayerTeamResponse
-from src.services.game_service import GameService
 from src.services.player_service import PlayerService
 
 
@@ -38,7 +36,7 @@ class GamePlayerService:
         is_visitor: bool,
         invited_by_id: Optional[str],
         team: Optional[str],
-    ) -> GamePlayerTeamResponse:
+    ):
         data = {
             "game_id": game_id,
             "player_id": player_id,
@@ -52,16 +50,20 @@ class GamePlayerService:
 
         return resp
 
+    # def create_or_update_game_player(self, data:
+
     def delete_player_in_game(self, game_id, player_id):
         return self.repository.delete(game_id, player_id)
 
-    def get_player_by_id_in_game(self, game_id, player_id):
-        return self.repository.get_by_player_id(game_id, player_id)
+    def get_players_in_game(self, game_id: str):
+        return self.repository.get_players(game_id)
 
     def update_player_in_game(self, game_id, player_id, data: GamePlayerUpdateSchema):
-        # Validações
+        # Regras de negócio
         if data.paid is True and data.amount_paid is None:
             raise Exception("O valor pago deve ser informado quando o jogador for marcado como pago.")
+        else:
+            pass
 
         if data.is_visitor is True and data.invited_by is None:
             raise Exception("O jogador visitante deve ter um convidador.")
@@ -75,7 +77,7 @@ class GamePlayerService:
         if data.is_visitor:
             update_data["is_visitor"] = data.is_visitor
         if data.invited_by:
-            update_data["invited_by"] = player_service.get_or_create_player_by_name(data.invited_by).id
+            update_data["invited_by"] = player_service.get_or_create_player(data.invited_by).id
         if data.paid:
             update_data["paid"] = data.paid
         if data.amount_paid:
@@ -86,11 +88,7 @@ class GamePlayerService:
         return self.repository.update(game_id, player_id, update_data)
 
     def add_player_in_game(self, game_id: str, data: GamePlayerAddSchema):
-        # Validações
-        game_service = GameService()
-        if not game_service.get_game_by_id(game_id):
-            raise Exception("Jogo não encontrado.")
-
+        # Regras de negócio
         if data.paid is True and data.amount_paid is None:
             raise Exception("O valor pago deve ser informado quando o jogador for marcado como pago.")
 
@@ -102,10 +100,10 @@ class GamePlayerService:
 
         add_data = {
             "game_id": game_id,
-            "player_id": player_service.get_or_create_player_by_name(data.name).id,
+            "player_id": player_service.get_or_create_player(data.name).id,
             "is_goalkeeper": data.is_goalkeeper,
             "is_visitor": data.is_visitor,
-            "invited_by": player_service.get_or_create_player_by_name(data.invited_by).id if data.invited_by else None,
+            "invited_by": (player_service.get_or_create_player(data.invited_by).id if data.invited_by else None),
             "paid": data.paid,
             "amount_paid": data.amount_paid,
             "team": data.team,

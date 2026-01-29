@@ -1,6 +1,10 @@
 from fastapi import HTTPException
+from pydantic import BaseModel
 from src.repositories import GamePlayerRepository, PlayerRepository
-from src.schemas import PlayerResponse
+
+
+class PlayerAddSchema(BaseModel):
+    name: str
 
 
 class PlayerService:
@@ -8,49 +12,25 @@ class PlayerService:
         self.repository = PlayerRepository()
         self.game_player_repository = GamePlayerRepository()
 
+    def get_or_create_player(self, body: PlayerAddSchema) -> dict:
+        body.name = body.name.strip()
+        player = self.get_player_by_name(body.name)
+        if player:
+            return player
+        return self.repository.create(body.model_dump())
+
     def get_player_by_id(self, player_id: str) -> dict | None:
-        return self.repository.get_by_id(player_id)
+        return self.repository.get({"id": player_id})[0]
 
     def get_games_by_player_id(self, player_id: str) -> list[dict] | None:
-        return self.game_player_repository.get_by_player_id(player_id)
+        return self.game_player_repository.get_games(player_id)
 
     def get_player_by_name(self, name: str) -> dict | None:
         name = name.strip()
-        return self.repository.get_by_name(name)
+        return self.repository.get({"name": name})[0]
 
-    def get_or_create_player_by_name(self, name: str) -> dict:
-        name = name.strip()
-        player = self.get_player_by_name(name)
-        if player:
-            return player
-        return self.repository.create(name)
-
-    def resolve_or_create_player(self, name: str) -> PlayerResponse:
-        name_clean = name.strip()
-
-        resp = self.repository.get_by_name(name_clean)
-
-        if resp:
-            return PlayerResponse.model_validate(resp)
-
-        insert_resp = self.repository.create(name_clean)
-
-        if not insert_resp:
-            raise HTTPException(status_code=500, detail="Erro ao criar jogador")
-
-        return PlayerResponse.model_validate(insert_resp)
-
-    def list_all_players(self) -> list[PlayerResponse]:
-        resp = self.repository.get_all()
-
-        if resp:
-            return [PlayerResponse.model_validate(i) for i in resp]
-
-        return []
+    def get_players(self) -> list[dict]:
+        return self.repository.get()
 
     def delete_player(self, player_id) -> None:
-        resp = self.repository.delete(player_id)
-
-        if resp:
-            return resp
-        return None
+        return self.repository.delete(player_id)
