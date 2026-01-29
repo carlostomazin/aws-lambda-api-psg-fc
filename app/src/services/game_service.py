@@ -49,34 +49,47 @@ class GameService:
         return self.repository.update(game_id, update_data)
 
     def get_game(self, game_id: str) -> dict | None:
-        result = self.repository.get({"id": game_id})
-        return result[0] if result else None
+        game = self.repository.get({"id": game_id})
+        if not game:
+            return None
+        game = game[0]
+
+        # Adiciona os totais de jogadores e valores pagos
+        return self._get_game_with_totals(game)
 
     def get_game_by_date(self, game_date: date) -> dict | None:
         game_date = game_date.isoformat()
-        result = self.repository.get({"game_date": game_date})
-        return result[0] if result else None
+        game = self.repository.get({"game_date": game_date})
+        if not game:
+            return None
+        game = game[0]
+
+        # Adiciona os totais de jogadores e valores pagos
+        return self._get_game_with_totals(game)
 
     def get_games(self) -> list[dict]:
         games = self.repository.get()
-        games_with_total = []
-        for game in games:
-            players = self.game_player_service.get_players_in_game(game["id"])
-            if players is None:
-                players = []
-            players_total = len(players) if players else 0
-            players_paid = sum(1 for player in players if player["amount_paid"] and player["amount_paid"] > 0)
-            players_visitors = sum(1 for player in players if player["is_visitor"])
-            total_amount = sum(player["amount_paid"] for player in players if player["amount_paid"])
+        if not games:
+            return []
 
-            game["players_total"] = players_total
-            game["players_paid"] = players_paid
-            game["total_amount"] = total_amount
-            game["players_visitors"] = players_visitors
-
-            games_with_total.append(game)
-
-        return games_with_total
+        # Adiciona os totais de jogadores e valores pagos
+        return [self._get_game_with_totals(game) for game in games]
 
     def delete_game(self, game_id: str) -> None:
         return self.repository.delete(game_id)
+
+    def _get_game_with_totals(self, game: dict) -> dict:
+        players = self.game_player_service.get_players_in_game(game["id"])
+        if not players:
+            players = []
+        players_total = len(players) if players else 0
+        players_paid = sum(1 for player in players if player["amount_paid"] and player["amount_paid"] > 0)
+        players_visitors = sum(1 for player in players if player["is_visitor"])
+        total_amount = sum(player["amount_paid"] for player in players if player["amount_paid"])
+
+        game["players_total"] = players_total
+        game["players_paid"] = players_paid
+        game["total_amount"] = total_amount
+        game["players_visitors"] = players_visitors
+
+        return game
