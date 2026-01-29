@@ -33,8 +33,9 @@ class GameRepository:
                     query = query.in_(field, list(value))
                 else:
                     query = query.eq(field, value)
+
         # order
-        query = query.order("game_date", desc=False)
+        query = query.order("game_date", desc=True)
 
         response = query.execute()
         return response.data or None
