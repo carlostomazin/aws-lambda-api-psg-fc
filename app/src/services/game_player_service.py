@@ -2,7 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 from src.repositories import GamePlayerRepository
-from src.services import GameService, PlayerService
+from src.services.game_service import GameService
+from src.services.player_service import PlayerService
 
 
 class GamePlayerAddSchema(BaseModel):
