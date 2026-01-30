@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 from src.repositories import GamePlayerRepository
-from src.services.player_service import PlayerService
+from src.services import GameService, PlayerService
 
 
 class GamePlayerAddSchema(BaseModel):
@@ -10,6 +10,7 @@ class GamePlayerAddSchema(BaseModel):
     is_goalkeeper: Optional[bool] = False
     is_visitor: Optional[bool] = False
     invited_by: Optional[str] = None
+    paid: Optional[bool] = False
     amount_paid: Optional[float] = None
     team: Optional[str] = None
 
@@ -18,6 +19,7 @@ class GamePlayerUpdateSchema(BaseModel):
     is_goalkeeper: Optional[bool] = None
     is_visitor: Optional[bool] = None
     invited_by: Optional[str] = None
+    paid: Optional[bool] = None
     amount_paid: Optional[float] = None
     team: Optional[str] = None
 
@@ -25,6 +27,8 @@ class GamePlayerUpdateSchema(BaseModel):
 class GamePlayerService:
     def __init__(self):
         self.repository = GamePlayerRepository()
+        self.player_service = PlayerService()
+        self.game_service = GameService()
 
     def upsert_game_player(
         self,
@@ -48,38 +52,11 @@ class GamePlayerService:
 
         return resp
 
-    # def create_or_update_game_player(self, data:
-
-    def delete_player_in_game(self, game_id, player_id):
-        return self.repository.delete(game_id, player_id)
-
-    def get_players_in_game(self, game_id: str):
-        return self.repository.get_players(game_id)
-
-    def update_player_in_game(self, game_id, player_id, data: GamePlayerUpdateSchema):
-        # Regras de negócio
-        if data.is_visitor is True and data.invited_by is None:
-            raise Exception("O jogador visitante deve ter um convidador.")
-
-        # Prepara os dados para atualização
-        player_service = PlayerService()
-        update_data = {}
-
-        if data.is_goalkeeper:
-            update_data["is_goalkeeper"] = data.is_goalkeeper
-        if data.is_visitor:
-            update_data["is_visitor"] = data.is_visitor
-        if data.invited_by:
-            update_data["invited_by"] = player_service.get_or_create_player(data.invited_by).id
-        if data.amount_paid:
-            update_data["amount_paid"] = data.amount_paid
-        if data.team:
-            update_data["team"] = data.team
-
-        return self.repository.update(game_id, player_id, update_data)
-
     def add_player_in_game(self, game_id: str, data: GamePlayerAddSchema):
         # Regras de negócio
+        if data.paid is True and data.amount_paid is None:
+            raise Exception("Para marcar o jogador como pago, é necessário informar o valor pago.")
+
         if data.is_visitor is True and data.invited_by is None:
             raise Exception("O jogador visitante deve ter um convidador.")
 
@@ -92,8 +69,57 @@ class GamePlayerService:
             "is_goalkeeper": data.is_goalkeeper,
             "is_visitor": data.is_visitor,
             "invited_by": (player_service.get_or_create_player(data.invited_by).id if data.invited_by else None),
+            "paid": data.paid,
             "amount_paid": data.amount_paid,
             "team": data.team,
         }
 
         self.repository.upsert(add_data)
+
+    def update_player_in_game(self, game_id, player_id, data: GamePlayerUpdateSchema):
+        # Regras de negócio
+        if data.paid is True and data.amount_paid is None:
+            raise Exception("Para marcar o jogador como pago, é necessário informar o valor pago.")
+        else:
+            game = self.game_service.get_game(game_id)
+            player = self.get_player_in_game(game_id, player_id)
+            if data.is_goalkeeper is True or player["is_goalkeeper"] is True:
+                if game["goalkeepers_pay"] is False:
+                    data.amount_paid = 0.0
+                else:
+                    if game["price_per_player"] is not None:
+                        data.amount_paid = game["price_per_player"]
+            elif data.amount_paid == 0.0:
+                if game["price_per_player"] is not None:
+                    data.amount_paid = game["price_per_player"]
+
+        if data.is_visitor is True and data.invited_by is None:
+            raise Exception("O jogador visitante deve ter um convidador.")
+
+        # Prepara os dados para atualização
+        update_data = {}
+
+        if data.is_goalkeeper:
+            update_data["is_goalkeeper"] = data.is_goalkeeper
+        if data.is_visitor:
+            update_data["is_visitor"] = data.is_visitor
+        if data.invited_by:
+            update_data["invited_by"] = self.player_service.get_or_create_player(data.invited_by).id
+        if data.amount_paid:
+            update_data["amount_paid"] = data.amount_paid
+        if data.team:
+            update_data["team"] = data.team
+
+        return self.repository.update(game_id, player_id, update_data)
+
+    def get_player_in_game(self, game_id: str, player_id: str) -> Optional[dict]:
+        palyer = self.repository.get({"game_id": game_id, "player_id": player_id})
+        if not palyer:
+            return None
+        return palyer[0]
+
+    def get_players_in_game(self, game_id: str):
+        return self.repository.get_players(game_id)
+
+    def delete_player_in_game(self, game_id, player_id):
+        return self.repository.delete(game_id, player_id)
