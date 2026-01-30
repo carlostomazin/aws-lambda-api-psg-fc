@@ -2,8 +2,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 from src.repositories import GamePlayerRepository
-from src.services.game_service import GameService
-from src.services.player_service import PlayerService
 
 
 class GamePlayerAddSchema(BaseModel):
@@ -28,8 +26,6 @@ class GamePlayerUpdateSchema(BaseModel):
 class GamePlayerService:
     def __init__(self):
         self.repository = GamePlayerRepository()
-        self.player_service = PlayerService()
-        self.game_service = GameService()
 
     def upsert_game_player(
         self,
@@ -62,6 +58,8 @@ class GamePlayerService:
             raise Exception("O jogador visitante deve ter um convidador.")
 
         # Preparar os dados para inserção
+        from src.services.player_service import PlayerService
+
         player_service = PlayerService()
 
         add_data = {
@@ -82,7 +80,10 @@ class GamePlayerService:
         if data.paid is True and data.amount_paid is None:
             raise Exception("Para marcar o jogador como pago, é necessário informar o valor pago.")
         else:
-            game = self.game_service.get_game(game_id)
+            from src.services.game_service import GameService
+
+            game_service = GameService()
+            game = game_service.get_game(game_id)
             player = self.get_player_in_game(game_id, player_id)
             if data.is_goalkeeper is True or player["is_goalkeeper"] is True:
                 if game["goalkeepers_pay"] is False:
@@ -105,7 +106,10 @@ class GamePlayerService:
         if data.is_visitor:
             update_data["is_visitor"] = data.is_visitor
         if data.invited_by:
-            update_data["invited_by"] = self.player_service.get_or_create_player(data.invited_by).id
+            from src.services.player_service import PlayerService
+
+            player_service = PlayerService()
+            update_data["invited_by"] = player_service.get_or_create_player(data.invited_by).id
         if data.amount_paid:
             update_data["amount_paid"] = data.amount_paid
         if data.team:

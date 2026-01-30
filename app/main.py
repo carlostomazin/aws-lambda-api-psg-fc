@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from src.schemas import GenerateTeamsRequest
 from src.services import (
@@ -105,6 +105,9 @@ def add_player_in_game(game_id: str, body: GamePlayerAddSchema):
 
 @app.patch("/games/{game_id}/players/{player_id}", tags=["games/players"])
 def update_player_in_game(game_id: str, player_id: str, body: GamePlayerUpdateSchema):
+    player = game_player_service.get_player_in_game(game_id, player_id)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found in game")
     return game_player_service.update_player_in_game(game_id, player_id, body)
 
 

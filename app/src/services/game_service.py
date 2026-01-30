@@ -3,7 +3,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 from src.repositories import GameRepository
-from src.services import GamePlayerService
 
 
 class GameAddSchema(BaseModel):
@@ -23,7 +22,6 @@ class GameUpdateSchema(BaseModel):
 class GameService:
     def __init__(self):
         self.repository = GameRepository()
-        self.game_player_service = GamePlayerService()
 
     def get_or_create_game(self, body: GameAddSchema) -> dict | None:
         game = self.get_game_by_date(body.game_date)
@@ -79,9 +77,10 @@ class GameService:
         return self.repository.delete(game_id)
 
     def _get_game_with_totals(self, game: dict) -> dict:
-        players = self.game_player_service.get_players_in_game(game["id"])
-        if not players:
-            players = []
+        from src.services.game_player_service import GamePlayerService
+
+        gp_service = GamePlayerService()
+        players = gp_service.get_players_in_game(game["id"]) or []
         players_total = len(players) if players else 0
         players_paid = sum(1 for player in players if player["amount_paid"] and player["amount_paid"] > 0)
         players_visitors = sum(1 for player in players if player["is_visitor"])
