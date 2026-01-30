@@ -11,7 +11,9 @@ class PlayerService:
         self.repository = PlayerRepository()
         self.game_player_repository = GamePlayerRepository()
 
-    def get_or_create_player(self, body: PlayerAddSchema) -> dict:
+    def get_or_create_player(self, body: PlayerAddSchema | str) -> dict:
+        if isinstance(body, str):
+            body = PlayerAddSchema(name=body)
         body.name = body.name.strip()
         player = self.get_player_by_name(body.name)
         if player:
