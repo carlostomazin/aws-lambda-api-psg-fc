@@ -40,7 +40,7 @@ class GamePlayerRepository:
         response = (
             self.supabase.table("game_players")
             .select(
-                "id, created_at, updated_at, is_goalkeeper, is_visitor, amount_paid, team, player:player_id (*), player_invited:invited_by (*)"
+                "id, created_at, updated_at, is_goalkeeper, is_visitor, paid, amount_paid, team, player:player_id (*), player_invited:invited_by (*)"
             )
             .eq("game_id", game_id)
             .execute()
