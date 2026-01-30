@@ -131,11 +131,11 @@ def generate_teams_for_game(game_id: str, body: GenerateTeamsRequest):
 
     for player in parsed_players:
         if player["invited_by_name"]:
-            player["invited_by_id"] = player_service.get_or_create_player(player["invited_by_name"]).id
+            player["invited_by_id"] = player_service.get_or_create_player(player["invited_by_name"])["id"]
         else:
             player["invited_by_id"] = None
 
-        player["player_id"] = player_service.get_or_create_player(player["name"]).id
+        player["player_id"] = player_service.get_or_create_player(player["name"])["id"]
 
     # 2) gera times (apenas em memória)
     goalkeepers = [dict(p) for p in parsed_players if p["is_goalkeeper"] is True]

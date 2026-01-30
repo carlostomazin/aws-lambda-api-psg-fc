@@ -64,10 +64,10 @@ class GamePlayerService:
 
         add_data = {
             "game_id": game_id,
-            "player_id": player_service.get_or_create_player(data.name).id,
+            "player_id": player_service.get_or_create_player(data.name)["id"],
             "is_goalkeeper": data.is_goalkeeper,
             "is_visitor": data.is_visitor,
-            "invited_by": (player_service.get_or_create_player(data.invited_by).id if data.invited_by else None),
+            "invited_by": (player_service.get_or_create_player(data.invited_by)["id"] if data.invited_by else None),
             "paid": data.paid,
             "amount_paid": data.amount_paid,
             "team": data.team,
@@ -114,7 +114,7 @@ class GamePlayerService:
             from src.services.player_service import PlayerService
 
             player_service = PlayerService()
-            update_data["invited_by"] = player_service.get_or_create_player(data.invited_by).id
+            update_data["invited_by"] = player_service.get_or_create_player(data.invited_by)["id"]
         if data.paid is not None:
             update_data["paid"] = data.paid
         if data.amount_paid is not None:
