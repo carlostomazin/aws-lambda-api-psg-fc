@@ -21,14 +21,20 @@ class PlayerService:
         return self.repository.create(body.model_dump())
 
     def get_player_by_id(self, player_id: str) -> dict | None:
-        return self.repository.get({"id": player_id})[0]
+        player = self.repository.get({"id": player_id})
+        if player:
+            return player[0]
+        return None
 
     def get_games_by_player_id(self, player_id: str) -> list[dict] | None:
         return self.game_player_repository.get_games(player_id)
 
     def get_player_by_name(self, name: str) -> dict | None:
         name = name.strip()
-        return self.repository.get({"name": name})[0]
+        player = self.repository.get({"name": name})
+        if player:
+            return player[0]
+        return None
 
     def get_players(self) -> list[dict]:
         return self.repository.get()
