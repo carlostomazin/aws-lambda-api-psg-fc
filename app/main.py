@@ -40,6 +40,7 @@ app.add_middleware(
 #  Raiz
 # -------------------------------------------------------------------
 @app.get("/")
+@app.head("/")
 def health():
     return {"message": "ok"}
 
